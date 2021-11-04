@@ -26,9 +26,8 @@ class prep:
         except OSError:
             print(f"{self.file_path}는 없는 경로입니다. 해당 이미지의 text_roi 폴더를 생성합니다.")
 
-
     # 안드로이드에서 전송한 이미지 파일 ROI 영역 탐지
-    # return 딕셔너리 - key: 이미지 이름, value: 8-segment영역 정보 튜플 (x, y, w, h)
+    # return 딕셔너리 - key: 이미지 이름, value: 8-segment 영역 정보 튜플 (x, y, w, h)
     def find_8seg(self):
 
         src_roi = dict()    # 좌표를 저장할 딕셔너리 생성
@@ -158,15 +157,17 @@ class prep:
                     cv2.imwrite(self.file_path + '/' + self.src_name + '_per' + '.jpg', src_rot)
 
                     # 회전 & 투시 변환 후 이진화
-                    # img = cv2.adaptiveThreshold(dst, max_val, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV,
-                    #                             block_size, 15)
-
+                    img = cv2.adaptiveThreshold(dst, max_val, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY,
+                                                block_size, 15)
+                    # cv2.imshow('adaptive', img)
+                    # cv2.waitKey(0)
+                    # cv2.destroyAllWindows()
                     # watershed 실행 메소드 호출
-                    water_img = self.watershed(dst)
+                    # img = self.watershed(dst)
 
                     # OCR 수행
                     config = ('-l kor+eng --oem 1 --psm 3')
-                    text = pytesseract.image_to_string(water_img, config=config)
+                    text = pytesseract.image_to_string(img, config=config)
                     print(text)
                     pat = re.compile('(\d{2})\W+(\d{2})\W+(\d{7})\W+(\d{4})')
                     mc = pat.findall(text)
@@ -187,13 +188,17 @@ class prep:
 
         print(f"-----------------------------ROI of {self.src_name}-----------------------------")
 
+        # 객체를 0개 탐지했을 경우
         if len(src_roi[self.src_name]) == 0 or len(serial_id) == 0:
             print("ROI 를 탐지하지 못했습니다. 다시 촬영해주십시오.")
             result_roi = 0
-        elif len(src_roi[self.src_name]) == 2 or len(serial_id) == 0:
+
+        # 객체를 2개이상 탐지했을 경우
+        elif len(src_roi[self.src_name]) >= 2:
             print("ROI 가 2개 탐지하였습니다. 첫번째 ROI를 기준으로 OCR 수행합니다.")
             result_roi = 2
         else:
+            # 객체를 1개 탐지했을 경우
             print(src_roi[self.src_name])
             result_roi = 1
 
@@ -208,7 +213,7 @@ class prep:
         # cv2.destroyAllWindows()
 
         # noise 제거
-        kernel = np.ones((1, 1), np.uint8)
+        kernel = np.ones((3, 3), np.uint8)
         opening = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel, iterations=2)
 
         # 확실한 배경 찾기
@@ -247,7 +252,7 @@ class prep:
         print(np.unique(marker_map))
         img[marker_map == -1] = [255, 0, 0]
 
-        cv2.imwrite(self.file_path + '/' + self.src_name + '_watershed.jpg' + '.jpg', img)
+        cv2.imwrite(self.file_path + '/' + self.src_name + '_watershed' + '.jpg', img)
         # cv2.imshow('Watershed', img)
         # cv2.waitKey(0)
         # cv2.destroyAllWindows()

@@ -110,10 +110,10 @@ def insertElectricityMeter():
         meter['updatedate'] = request.form['updatedate']
 
         meter['serial_cd'] = serial_cd
-        meter['supply_type'] = '교류3상4선식'
-        meter['typename'] = 'g-type'
+        meter['supply_type'] = supply_type
+        meter['typename'] = typename
         meter['electricity_filename'] = f.filename
-        meter['region_cd'] = '01'
+        meter['region_cd'] = region_cd
         print("insertElectricityMeter] 계량기정보 저장::", meter)
 
         dao = db.Dao()
